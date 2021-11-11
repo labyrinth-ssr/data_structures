@@ -1,0 +1,14 @@
+hash1:
+multiplication method.
+使用gbk编码，名字最多3个字，处理为48位2进制数后转long long int.
+hash_和hash2：
+open address中的double hash.为了使hash2 和 模数互质，模数为2的幂，hash2为奇数。
+hashtable：是一个结构体数组。因为不方便判空，结构体中含status变量用于判断是空还是已存储值还是已删除。
+insert：
+代码必须以gbk编码，因为处理性别时有字符串判断。e.g. “男”存储为MALE性别。若hashtable已满则抛出异常。
+search：
+搜索失败不属于异常，返回位置为-1，输出：未搜索到。
+delete：
+将搜索到的内容的状态置为deleted。
+若内容本身不在hashtable中，则输出提示。
+
