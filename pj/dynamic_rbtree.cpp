@@ -3,7 +3,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <stdlib.h>
 using namespace std;
 // const int SIZE = 3000;
 
@@ -21,37 +20,34 @@ public:
   Node *left;
   Node *right;
   Node *p;
-  Record val;//考虑到record 比较小
+  Record val; //考虑到record 比较小
   Node();
-  Node(keyValue,int);
+  Node(keyValue, int);
   ~Node();
   inline bool is_NIL();
 };
 
-bool Node:: is_NIL(){
-  return this->key.empty();
-}
+bool Node::is_NIL() { return this->key.empty(); }
 
-Node::Node() : nodeColor(BLACK),index(-1) {}
+Node::Node() : nodeColor(BLACK), index(-1) {}
 
-Node::Node(keyValue in,int i):nodeColor(BLACK),key(in.first),val(in.second),index(i){}
+Node::Node(keyValue in, int i)
+    : nodeColor(BLACK), key(in.first), val(in.second), index(i) {}
 
 Node::~Node() {}
 
 typedef struct RBTree {
   Node *root = new Node;
-  Node *NIL=new Node;
+  Node *NIL = new Node;
 } RBTree;
 
 RBTree tree;
-// Node nodes[SIZE];
-// int dataSize = 0;
 
 void dump(Node *x) {
-  if (x->key.empty()) {
+  if (x->is_NIL()) {
     // cout<<"return"<<endl;
   }
-  if (!x->key.empty()) {
+  if (!x->is_NIL()) {
     // cout<<"enter"<<endl;
     dump(x->left);
     cout << x->key << " -- (" << x->val.first << "," << x->val.second << ")"
@@ -147,15 +143,20 @@ void rb_insert_fixup(Node *z) {
 }
 
 void rb_insert(Node *z) {
-  auto y = tree.NIL; // null initialize? y :to store the parent
+  auto y = tree.NIL;  // null initialize? y :to store the parent
   auto x = tree.root; // from root
   while (!x->is_NIL()) {
     y = x;
-    // delete yCopy;
     if (z->key == x->key) {
-      throw("The word already exits");
-      return;
+        
+      throw("key "+x->key+" conflict");
     }
+    if (z->key == x->key)
+    {
+              return;
+
+    }
+    
     if (z->key < x->key) {
       x = x->left;
       // cout << "x left ";
@@ -163,12 +164,11 @@ void rb_insert(Node *z) {
       x = x->right;
       // cout << "x right "; // in fact,i can know the final destination
     }
-  }                   // to the empty node , with left or right unchosen
-  z->p = y;           // y is not empty
+  }                // to the empty node , with left or right unchosen
+  z->p = y;        // y is not empty
   if (y->is_NIL()) // means that no former nodes
   {
     tree.root = z;
-    delete y;
   } else if (z->key < y->key) {
     delete y->left;
     y->left = z;
@@ -178,17 +178,9 @@ void rb_insert(Node *z) {
     y->right = z;
     // cout << "y right ";
   }
-  try
-  {
-    z->left = new Node;
+  z->left = new Node;
   z->right = new Node;
-  }
-  catch(const std::bad_alloc& e)
-  {
-    cout<<"bad alloc!!!!"<<endl;
-  }
-  
-  
+
   z->nodeColor = RED;
   rb_insert_fixup(z);
 }
@@ -272,10 +264,10 @@ void rb_delete(Node *z) {
   auto y = z;
   auto yOriginalColor = y->nodeColor;
   Node *x = NULL;
-  if (z->left->key.empty()) {
+  if (z->left->is_NIL()) {
     x = z->right;
     rb_transplant(z, z->right);
-  } else if (z->right->key.empty()) {
+  } else if (z->right->is_NIL()) {
     x = z->left;
     rb_transplant(z, z->left);
   } else {
@@ -297,18 +289,18 @@ void rb_delete(Node *z) {
   if (yOriginalColor == BLACK) {
     rb_delete_fixup(x);
   }
-  // if (zCopy >= &nodes[0] && zCopy <= &nodes[SIZE - 1]) {
-  //   return;
-  // }
   delete zCopy;
-  cout << "dynamic delete" << endl;
 }
 
 Node *tree_search(Node *x, string k) {
-  if (x->key.empty()) {
-    throw "key " + x->key + " missing";
-    return x;
-  } else if (k == x->key) {
+  if (x->is_NIL()) {
+    throw "key " + k + " missing";
+  } 
+  if (x->is_NIL())
+  {
+      return x;
+  }
+  else if (k == x->key) {
     return x;
   } else if (k < x->key) {
     return tree_search(x->left, k);
@@ -317,75 +309,41 @@ Node *tree_search(Node *x, string k) {
   }
 }
 
-keyValue freq_list_line_input(string line){
-    keyValue ret;
-    string ele;
-    istringstream readstr(line);
-    getline(readstr, ele, ' ');
-    ret.first=ele;
-    // nodes[i].key = ele;
-    getline(readstr, ele, ' ');
-    ret.second.first=ele[0];
-    // nodes[i].val.first = ele[0];
-    getline(readstr, ele, ' ');
-    ret.second.second=stoi(ele);
-    // nodes[i].val.second = stoi(ele);
-    // nodes[i].index = i;
-    return ret;
+keyValue freq_list_line_input(string line) {
+  keyValue ret;
+  string ele;
+  istringstream readstr(line);
+  getline(readstr, ele, ' ');
+  ret.first = ele;
+  // nodes[i].key = ele;
+  getline(readstr, ele, ' ');
+  ret.second.first = ele[0];
+  // nodes[i].val.first = ele[0];
+  getline(readstr, ele, ' ');
+  ret.second.second = stoi(ele);
+  // nodes[i].val.second = stoi(ele);
+  // nodes[i].index = i;
+  return ret;
 }
 
-void init(string fname) {
+void insert_by_file(string fname) {
   ifstream fp(fname);
   string line;
   getline(fp, line);
   int i = 0;
   while (getline(fp, line)) {
-    auto content=freq_list_line_input(line);
-    if (i==97||i==150)
-    {
-      cout<<"watch"<<endl;
-    }
-    
-    try
-    {
-      Node* a=NULL;
-      try
-      {
-        a=new Node(content,i);
-      }
-      catch(const std::bad_alloc& e)
-      {
-        cout<<"bad alloc";
-        // std::cerr << e.what() << '\n';
-      }
-      
-      rb_insert(a);
-    }
-    catch (const char *e) {
+    auto content = freq_list_line_input(line);
+    try {
+      rb_insert(new Node(content, i));
+    } catch ( string e) {
       std::cerr << e << '\n';
     }
     i++;
-    cout<<i<<" ";
-    
-    // string ele;
-    // istringstream readstr(line);
-    // getline(readstr, ele, ' ');
-    // nodes[i].key = ele;
-    // getline(readstr, ele, ' ');
-    // nodes[i].val.first = ele[0];
-    // getline(readstr, ele, ' ');
-    // nodes[i].val.second = stoi(ele);
-    // nodes[i].index = i;
-    // i++;
+    // cout << i << " ";
   }
-  // dataSize = i;
-  // cout << dataSize << endl;
-  // for (int j = 0; j < dataSize; j++) {
-  //   try {
-  //     rb_insert(&nodes[j]);
-  //   } 
-  // }
 }
+
+void init() { insert_by_file("init.txt"); }
 
 keyValue get_record_input() {
   Record value;
@@ -393,7 +351,7 @@ keyValue get_record_input() {
   string word;
   char part;
   int freq;
-  cout << "input word to be inserted:";
+  cout << "input word:";
   cin >> word;
   in.first = word;
   cout << "input part of speech:";
@@ -413,9 +371,8 @@ void delete_by_cmd() {
   Node *res = NULL;
   try {
     res = tree_search(tree.root, k);
-  } catch (const char *e) {
+  } catch (string e) {
     std::cerr << e << '\n';
-    return;
   }
   rb_delete(res);
 }
@@ -431,7 +388,7 @@ void delete_by_file(string fname) {
     Node *res = NULL;
     try {
       res = tree_search(tree.root, ele);
-    } catch (const char *e) {
+    } catch (string e) {
       std::cerr << e << '\n';
       continue;
     }
@@ -439,65 +396,47 @@ void delete_by_file(string fname) {
   }
 }
 
-void rb_update(keyValue in) {
+void update_by_cmd() {
+    cout<<"update by cmd"<<endl;
+  auto in = get_record_input();
   Node *res = NULL;
   try {
     res = tree_search(tree.root, in.first);
-  } catch (const char *e) {
-    auto newNode = new Node;
-    newNode->key = in.first;
-    newNode->val = in.second;
-    rb_insert(newNode);
+  } catch (string e) {
+    rb_insert(new Node(in, 3001));
     return;
   }
   res->val = in.second;
 }
 
 void insert_by_cmd() {
+    cout<<"insert by cmd:"<<endl;
   auto in = get_record_input();
-  Node *res = NULL;
-  auto newNode = new Node;
-  newNode->key = in.first;
-  newNode->val = in.second;
   try {
-    rb_insert(newNode);
-  } catch (const char *e) {
+    rb_insert(new Node(in, 2001));
+  } catch (string e) {
     std::cerr << e << '\n';
     return;
   }
 }
 
-// void insert_by_file(string fname) {
-//   ifstream fp(fname);
-//   string line;
-//   getline(fp, line);
-//   while (getline(fp, line)) {
-//     string ele;
-//     istringstream readstr(line);
-//     getline(readstr, ele, ' ');
-//     nodes[i].key = ele;
-//     getline(readstr, ele, ' ');
-//     nodes[i].val.first = ele[0];
-//     getline(readstr, ele, ' ');
-//     nodes[i].val.second = stoi(ele);
-//     nodes[i].index = i;
-//   }
-//   // cout << dataSize << endl;
-//   for (int j = 0; j < dataSize; j++) {
-//     try {
-//       rb_insert(&nodes[j]);
-//     } catch (const char *e) {
-//       std::cerr << e << '\n';
-//     }
-//   }
-// }
+void search_by_cmd() {
+  string k;
+  cout << "input word to be searched:";
+  cin >> k;
+  try {
+    auto res = tree_search(tree.root, k);
+    cout << "(" << res->val.first << "," << res->val.second << ")" << endl;
+  } catch (string e) {
+    std::cerr << e << '\n';
+  }
+}
 
 int main() {
-  init("init.txt");
-//   dump(tree.root);
-  // delete_by_file("delete.txt");
-  cout << endl;
-  // dump(tree.root);
-  cout << "done" << endl;
+  insert_by_file("insert.txt");
+//   search_by_cmd();
+dump(tree.root);
+  cout<<endl;
+  cout<<"done"<<endl;
   return 0;
 }
