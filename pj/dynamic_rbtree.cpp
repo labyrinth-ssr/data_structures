@@ -2,7 +2,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
 using namespace std;
 // const int SIZE = 3000;
 
@@ -16,7 +15,6 @@ public:
   Color nodeColor;
   int index;
   string key;
-  // Type type;
   Node *left;
   Node *right;
   Node *p;
@@ -45,14 +43,11 @@ RBTree tree;
 
 void dump(Node *x) {
   if (x->is_NIL()) {
-    // cout<<"return"<<endl;
   }
   if (!x->is_NIL()) {
-    // cout<<"enter"<<endl;
     dump(x->left);
     cout << x->key << " -- (" << x->val.first << "," << x->val.second << ")"
          << endl;
-    // cout<<x->index<<" ";
     dump(x->right);
   }
 }
@@ -128,7 +123,6 @@ void rb_insert_fixup(Node *z) {
       } else {
         if (z == z->p->left) {
           z = z->p;
-
           // cout << "right rotate ";
           right_rotate(z);
         }
@@ -148,15 +142,8 @@ void rb_insert(Node *z) {
   while (!x->is_NIL()) {
     y = x;
     if (z->key == x->key) {
-        
-      throw("key "+x->key+" conflict");
+      throw("key " + x->key + " conflict");
     }
-    if (z->key == x->key)
-    {
-              return;
-
-    }
-    
     if (z->key < x->key) {
       x = x->left;
       // cout << "x left ";
@@ -295,12 +282,7 @@ void rb_delete(Node *z) {
 Node *tree_search(Node *x, string k) {
   if (x->is_NIL()) {
     throw "key " + k + " missing";
-  } 
-  if (x->is_NIL())
-  {
-      return x;
-  }
-  else if (k == x->key) {
+  } else if (k == x->key) {
     return x;
   } else if (k < x->key) {
     return tree_search(x->left, k);
@@ -315,14 +297,10 @@ keyValue freq_list_line_input(string line) {
   istringstream readstr(line);
   getline(readstr, ele, ' ');
   ret.first = ele;
-  // nodes[i].key = ele;
   getline(readstr, ele, ' ');
   ret.second.first = ele[0];
-  // nodes[i].val.first = ele[0];
   getline(readstr, ele, ' ');
   ret.second.second = stoi(ele);
-  // nodes[i].val.second = stoi(ele);
-  // nodes[i].index = i;
   return ret;
 }
 
@@ -335,11 +313,10 @@ void insert_by_file(string fname) {
     auto content = freq_list_line_input(line);
     try {
       rb_insert(new Node(content, i));
-    } catch ( string e) {
+    } catch (string e) {
       std::cerr << e << '\n';
     }
     i++;
-    // cout << i << " ";
   }
 }
 
@@ -373,6 +350,7 @@ void delete_by_cmd() {
     res = tree_search(tree.root, k);
   } catch (string e) {
     std::cerr << e << '\n';
+    return;
   }
   rb_delete(res);
 }
@@ -397,20 +375,25 @@ void delete_by_file(string fname) {
 }
 
 void update_by_cmd() {
-    cout<<"update by cmd"<<endl;
+  cout << "update by cmd" << endl;
   auto in = get_record_input();
   Node *res = NULL;
   try {
     res = tree_search(tree.root, in.first);
   } catch (string e) {
+    cout << "insert " << in.first << " -- (" << in.second.first << ","
+         << in.second.second << ")" << endl;
+
     rb_insert(new Node(in, 3001));
     return;
   }
+  cout << "update " << in.first << " -- (" << in.second.first << ","
+       << in.second.second << ")" << endl;
   res->val = in.second;
 }
 
 void insert_by_cmd() {
-    cout<<"insert by cmd:"<<endl;
+  cout << "insert by cmd:" << endl;
   auto in = get_record_input();
   try {
     rb_insert(new Node(in, 2001));
@@ -426,17 +409,58 @@ void search_by_cmd() {
   cin >> k;
   try {
     auto res = tree_search(tree.root, k);
-    cout << "(" << res->val.first << "," << res->val.second << ")" << endl;
+    cout << k << " -- (" << res->val.first << "," << res->val.second << ")"
+         << endl;
   } catch (string e) {
     std::cerr << e << '\n';
   }
 }
 
 int main() {
-  insert_by_file("insert.txt");
-//   search_by_cmd();
-dump(tree.root);
-  cout<<endl;
-  cout<<"done"<<endl;
+  while (1) {
+    int i;
+    cout << "input function:\n"
+         << "1-initialization 2-delete by command "
+         << "3-delete by file 4-insert by command "
+         << "5-insert by file 6-update by command "
+         << "7-search by command 8-dump\n";
+    cin >> i;
+    switch (i) {
+    case 1:
+      init();
+      break;
+    case 2:
+      delete_by_cmd();
+      break;
+    case 3: {
+      string filename;
+      cout << "input file name to delete:";
+      cin >> filename;
+      delete_by_file(filename);
+      break;
+    }
+    case 4:
+      insert_by_cmd();
+      break;
+    case 5: {
+      string filename;
+      cout << "input file name to insert:";
+      cin >> filename;
+      insert_by_file(filename);
+      break;
+    }
+    case 6:
+      update_by_cmd();
+      break;
+    case 7:
+      search_by_cmd();
+      break;
+    case 8:
+      dump(tree.root);
+      break;
+    default:
+      break;
+    }
+  }
   return 0;
 }
