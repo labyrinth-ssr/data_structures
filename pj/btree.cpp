@@ -5,7 +5,7 @@
 #include <string>
 
 const int T =
-    2; //(most 2T-1 keys ,least T-1 key ,most 2T children,least Tchildren)
+    3; //(most 2T-1 keys ,least T-1 key ,most 2T children,least Tchildren)
 using namespace std;
 typedef pair<char, int> Record;
 typedef pair<string, Record> keyValue;
@@ -383,11 +383,6 @@ void b_delete_by_file(string fname) {
   int i = 0;
 
   while (getline(fp, line)) {
-    if (i==170)
-    {
-      cout<<"53 ";
-    }
-    
     auto content = freq_list_line_input(line);
     if(b_tree_search(tree.root,content.first).first==""){
       continue;
