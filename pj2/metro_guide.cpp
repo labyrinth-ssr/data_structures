@@ -1,81 +1,330 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <array>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <unordered_set>
+#include <unordered_map>
+#include <cstring>
 
 using namespace std;
 using namespace std::chrono;
+typedef unordered_set<int> stationIndexSet;
 
 int MAX=32767;
-array<string,500> stations;
-int w[500][500];
-int line[500][500];
+typedef unordered_map<string,int> stationKV;
+int w[500][500]={0};
+int lines[500][500];
 int d[500];
+int pi[500];
+
+string stationNames[500];//Êä³öµÄÊ±ºòĞèÒª¿¿indexÕÒµ½¶ÔÓ¦µÄname£¬ÎªÁË¿ª·¢µÄ·½±ã£¬ÀË·ÑÒ»µã¿Õ¼ä¡£
+stationIndexSet V;
+stationKV stationMap;
 
 system_clock::time_point time_parser(string in){
     tm tm1 = {};
-    stringstream ss("2014 "+in);
-    ss >> get_time(&tm1,"%Y %H:%M:%S");
+    string temp;
+    if (in.substr(0,2)=="´Î")
+    {
+        const char* day="2011 Oct 08 ";
+        temp=day+in.substr(2,10);
+    }
+    else{
+        const char* day="2011 Oct 07 ";
+        temp=day+in;
+    }
+    stringstream ss(temp);
+    ss >> get_time(&tm1,"%Y %b %d %H:%M:%S");
     auto tp = system_clock::from_time_t(mktime(&tm1));
     return tp;
 }
 
-void dijkstra(){
-    for ()
-    {
-        d[v]=
+int min_gap(string a,string b){
+            duration<double, milli> dur = time_parser(a) - time_parser(b);
+            auto timedur=(int)dur.count();	
+            return timedur/(60*1000);
+}
+
+// ÔõÃ´¸ã°¡£¬£¬£¬²»ĞĞ£¬Õâ¸öĞ§ÂÊÃ»¾ÈÁËorz¡£ÏëºÈÄÌ²è¡£
+
+int extract_min(stationIndexSet& q){//q: the remaining stations
+    int equalv[10];
+    int mind;
+    int minv;
+    int i=0;
+    for(auto v:q){
+        if (d[v]!=MAX)
+        {
+            minv=v;
+            mind=d[v];
+            break;
+        }
     }
     
+    for(auto v:q){
+        if (d[v]==mind)
+        {
+            equalv[i++]=v;
+        }
+        if (d[v]<mind)
+        {
+            minv=v;
+            mind=d[v];
+            memset(equalv, 0, sizeof(equalv));
+            i=0;
+        }
+    }
+    q.erase(minv);
+    // cout<<stationNames[minv]<<" ";
+    return minv;
+}
+// ¼ÙÉèÊÇÊı×é£¬dv£¬vÊÇÊı×Ö¡£ÕâÑù¾Í²»ĞèÒªmap£¬
+void dijkstra(int s){//s:source
+    for (auto v: V)//
+    {
+        d[v]=MAX;
+        pi[v]=MAX;
+    }
+    d[s]=0;
+    stationIndexSet S;
+    auto q=V;
+    while (!q.empty())
+    {
+        auto u=extract_min(q);
+        S.insert(u);
+        for (auto v :q)
+        {
+            if (w[u][v]!=0)
+            {
+                if (d[v]>d[u]+w[u][v])
+                {
+                    d[v]=d[u]+w[u][v];
+                    pi[v]=u;
+                }
+            }
+        }
+    }
+}
+
+// ÔÚÒ»¶ÎÖĞ£¬nÕ¾ÓĞn-1¶ÎÊ±¼ä£¬»»³Ëline-1£¬¼´n-2
+// ÔÚ¶ÎÏÎ½ÓÖĞÒòÎª±ØÓĞÆğÊ¼µãÖØºÏ£¬ÕâÀï²»Ôö¼ÓÊ±¼ä£¬Ôö¼Ó»»³Ë¡£
+
+void path_output(int source,int destination,int& ptime,int& pchange,int& lastline){
+    int output_path[80]={0};//ËùÓĞµÄÇ°Õ¾£¬¹²n-1,°üÀ¨source
+    auto p=destination;
+    int i=0;
+    output_path[i++]=destination;
+    while (p!=source)
+    {        
+        output_path[i++] =pi[p];
+        p=pi[p];
+    }
+    // output_path[i]=source;
+    i--;
+    int prevLine=0;
+    // cout<<stationNames[source];     
+    int cnt=0;
+    for (int j=i-1;j>= 0 ;j--)//´Ósource-1¿ªÊ¼£¬
+    { 
+        ptime+=w[output_path[j]][output_path[j+1]];
+        auto curLine=lines[output_path[j]][output_path[j+1]];
+        if(j==i-1&&curLine==lastline){
+            cnt--;
+        }
+        if (curLine==-1)
+        {
+            if (prevLine==3||prevLine==4)
+            {
+                curLine=prevLine;
+            }
+            else {
+                curLine=3;
+            }
+        }
+        if (curLine==prevLine)
+        {
+            ;
+        }
+        else{
+            if (prevLine!=0)
+            {
+                cout<<"-"<<stationNames[output_path[j+1]];
+            }
+            cout<<"-line "<<curLine;
+            cnt++;
+            prevLine=curLine;
+        }
+    }
+    lastline=lines[output_path[1]][output_path[0]];
+    pchange+=cnt;
+    cout<<"-"<<stationNames[destination];
+}
+
+void init_graph(){
+        ifstream fp("combined_file1.csv");
+    string line,prevtime,prevline,branch;
+        pair<string,string> branchtimepoint;
+    int preindex;
+    getline(fp,line);
+    int cnt=0;
+    while (getline(fp,line))
+    {
+        //´¦Àí·ÖÖ§
+        string sline,sname,stimepoint;
+        istringstream readstr(line);
+        getline(readstr,sline,',');
+        getline(readstr,sname,',');
+        getline(readstr,stimepoint,',');
+        if (sname=="ÁúÏªÂ·"||sname=="¼Î¶¨ĞÂ³Ç")//should have a more general way
+        {
+            branchtimepoint.first=stimepoint;
+            getline(readstr,branchtimepoint.second,',');
+            branch=sname;
+        }
+        else if (stimepoint=="--")
+        {
+            getline(readstr,stimepoint,',');
+            if (sname=="ÉÏº£¶¯ÎïÔ°"||"ÉÏº£Èü³µ³¡")
+            {
+                prevtime=branchtimepoint.second;
+                preindex=stationMap.at(branch);
+            }
+        }
+        else if (sname=="Áú°ØĞÂ´å")
+        {
+            prevtime=branchtimepoint.first;
+                preindex=stationMap.at(branch);
+        }
+        
+        auto i=stationMap.insert(pair<string,int>(sname,++cnt));//´Ó1¿ªÊ¼¸øÕ¾µã±àºÅ
+
+        if(!i.second){//Ã»²å½øÈ¥Òª¼õµô£¬cntÃ»ÓĞÔö¼Ó¡£
+            cnt--;
+        }
+        else{
+            stationNames[cnt]=sname;
+        }
+        auto curi=stationMap.at(sname);//Ò²¿ÉÒÔÊÇÍê³É²åÈëºóµÄfind
+        if (curi!=0&&sline==prevline)//³ıÁËÒ»ÌõÏßÂ·µÄÊ×Õ¾
+        {
+            //Á¬½ÓÓëÇ°Ò»Õ¾µÄ¾àÀë
+            //¶ÔÓÚ½»»»Õ¾£¬³ıÓë²åÈëÊ±µÄ¾àÀë£¬»¹ÓĞµÚ¶ş´ÎÊ±Ñ°ÕÒµ½ºóµÄadjacent¡£
+            w[curi][preindex]= min_gap(stimepoint,prevtime);
+            // cout<<w[curi][preindex]<<" ";
+            // cout<<curi<<" "<<preindex<<" ";
+            w[preindex][curi]= min_gap(stimepoint,prevtime);
+            if (lines[curi][preindex]==3)//use -1 to represent 3 or 4
+            {
+                lines[curi][preindex]=-1;
+                lines[preindex][curi]=-1;
+            }
+            else{
+                lines[curi][preindex]=stoi(sline);
+            lines[preindex][curi]=stoi(sline);
+            }
+        }
+        preindex=curi;
+        prevline=sline;
+        prevtime=stimepoint;
+    }
+    for (auto station:stationMap)
+    {
+        V.insert(station.second);
+    }
+    auto roundfirst=stationMap.at("ÒËÉ½Â·");
+        auto roundlast=stationMap.at("ºçÇÅÂ·");
+
+        w[roundfirst][roundlast]=2;
+        w[roundlast][roundfirst]=2;
+
+        lines[roundfirst][roundlast]=-1;
+        lines[roundlast][roundfirst]=-1;
+
+}
+
+// ÊµÏÖ£ºÃ¿Ò»¶Î¶¼ÊÇ
+void tb(){
+    ifstream fp("performance-benchmark.txt");
+    string line;
+    int lastline=0;
+    int cnt=0;
+    while (getline(fp,line))
+    {
+        int timesum=0,changesum=0;
+        string curstation;
+        istringstream readstr(line);
+        getline(readstr,curstation,'\t');
+        string prestation=curstation;
+        cout<<curstation;
+        while (getline(readstr,curstation,'\t'))
+        {
+            dijkstra(stationMap.at(prestation));
+            path_output(stationMap.at(prestation),stationMap.at(curstation),timesum,changesum,lastline);
+            prestation=curstation;
+        }
+        cout<<"»»³ËÊ±¼ä"<<timesum<<endl;
+        cout<<"»»³ËÊı"<<changesum<<endl;
+    }
+//·´·½Ïò»»³Ë£¬½öµ±×îºóÒ»Õ¾ÎªÊäÈëÊ±²úÉú£¬ÄÇÃ´Ö»¿¼ÂÇÊä³öµÄ»°£¬×÷ÎªÊ×Ä©Õ¾¿Ï¶¨»áÊä³ö£¬»»³Ë£¬Í¨³£Çé¿öÏÂ¾ÍÊÇÔÚÊä³öµÄÒ»¸öÕ¾×óÓÒÏßÂ·²»Í¬Ê±»»³ËÒ»´Î¡£
+}
+
+void path_output_all(int source,int destination,int& ptime){
+    int output_path[80];//ËùÓĞµÄÇ°Õ¾£¬¹²n-1,°üÀ¨source
+    auto p=destination;
+    int i=0;
+    while (p!=source)
+    {
+        output_path[i] =pi[p];
+        p=pi[p];
+        i++;
+    }
+    i--;
+    // cout<<output_path[i-1]<<endl;
+    cout<<stationNames[source];
+    int cnt=0;
+    for (int j=i-1;j>= 0 ;j--)//´Ósource-1¿ªÊ¼£¬
+    { 
+        ptime+=w[output_path[j]][output_path[j+1]];
+        auto curLine=lines[output_path[j]][output_path[j+1]];
+        cout<<w[output_path[j]][output_path[j+1]];
+        cout<<"-"<<stationNames[output_path[j]];
+    }
+    ptime+=w[output_path[0]][destination];
+    cout<<w[output_path[0]][destination];
+    cout<<"-"<<stationNames[destination];
+}
+
+void path_time_tb(){
+    int n;
+    cin>>n;
+    string curname,prevname;
+    cin>>curname;
+    prevname=curname;
+    n--;
+    int timesum=0;
+    while (n--)
+    {
+        cin>>curname;
+        dijkstra(stationMap.at(prevname));
+        path_output_all(stationMap.at(prevname),stationMap.at(curname),timesum);
+        prevname=curname;
+    }
+    cout<<timesum;
 }
 
 int main(){
+    
+    init_graph();
+    tb();
 
-// tm tm2={};
-// stringstream ss2("2014 12:40:00");
-// ss2 >> get_time(&tm2, "%Y %H:%M:%S");
-// auto tp2 = system_clock::from_time_t(mktime(&tm2));
-// duration<double, milli> dur = tp2 - tp;	
-// cout << "time: " << dur.count()/1000/60 << "m" << std::endl;
-    for (int i = 0; i < 14; i++)
-    {
-        ifstream fp("line"+i); //å®šä¹‰å£°æ˜ä¸€ä¸ªifstreamå¯¹è±¡ï¼ŒæŒ‡å®šæ–‡ä»¶è·¯å¾„
-        string line;
-        getline(fp,line); //è·³è¿‡åˆ—åï¼Œç¬¬ä¸€è¡Œä¸åšå¤„ç†
-        int cnt=1;
-        system_clock::time_point prevTime;
-        while (getline(fp,line)){ //å¾ªç¯è¯»å–æ¯è¡Œæ•°æ®
-        string name,strTime;
-        int time=0;
-        istringstream readstr(line); //stringæ•°æ®æµåŒ–
-        //å°†ä¸€è¡Œæ•°æ®æŒ‰'ï¼Œ'åˆ†å‰²
-            getline(readstr,name,','); 
-            getline(readstr,name,','); 
-            if (cnt==1)
-            {
-                getline(readstr,strTime,','); 
-                auto time1=time_parser(strTime);
-                prevTime=time1;
-            }
-            else{
-            getline(readstr,strTime,','); 
-            auto time1=time_parser(strTime);
-            duration<double, milli> dur = time1 - prevTime;
-            time=(int)dur.count();	
-            prevTime=time1;
-            }
-        for (int j = 0; j < cnt; j++)
-        {
-            if (stations[j]==)
-            {
-                /* code */
-            }
-            
-        }
-    }
-    }
+    // string startstion,endstation;
+    // cout<<stationMap.at("ÃñÀ×Â·");
+    // tb();
+    // cin>>startstion>>endstation;
+    // dijkstra(stationMap.at(startstion));
+    // path_output(stationMap.at(startstion),stationMap.at(endstation));
 
     return 0;
 }
