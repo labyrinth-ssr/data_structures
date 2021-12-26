@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <fstream>
@@ -8,19 +9,18 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
+
 typedef unordered_set<int> stationIndexSet;
+typedef unordered_map<string, int> stationKV;
 
 int MAX = 32767;
-typedef unordered_map<string, int> stationKV;
 int w[500][500] = {0};
-int lines[500][500];
+int lines[500][500] = {0};
 int d[500];
-// int pi[500];
-vector<int> pi[500],piu[500], temp, tempLineStation, entireMinchange;
+vector<int> pi[500], temp, tempLineStation;
 vector<vector<int>> entireLineStation;
 int segMinChange = MAX;
 int temppTime = 0;
@@ -64,7 +64,6 @@ int extract_min(stationIndexSet &q) { // q: the remaining stations
       break;
     }
   }
-
   for (auto v : q) {
     if (d[v] == mind) {
       equalv[i++] = v;
@@ -77,7 +76,6 @@ int extract_min(stationIndexSet &q) { // q: the remaining stations
     }
   }
   q.erase(minv);
-  // cout<<stationNames[minv]<<" ";
   return minv;
 }
 // ºŸ…Ë « ˝◊È£¨dv£¨v « ˝◊÷°£’‚—˘æÕ≤ª–Ë“™map£¨
@@ -100,7 +98,9 @@ void dijkstra(int s) { // s:source
           pi[v].clear();
           pi[v].push_back(u);
         } else if (d[v] == d[u] + w[u][v]) {
-          pi[v].push_back(u);
+          if (find(pi[v].begin(), pi[v].end(), u) == pi[v].end()) {
+            pi[v].push_back(u);
+          }
         }
       }
     }
@@ -109,7 +109,6 @@ void dijkstra(int s) { // s:source
 
 // ‘⁄“ª∂Œ÷–£¨n’æ”–n-1∂Œ ±º‰£¨ªª≥Àline-1£¨º¥n-2
 // ‘⁄∂ŒœŒΩ”÷–“ÚŒ™±ÿ”–∆ ºµ„÷ÿ∫œ£¨’‚¿Ô≤ª‘ˆº” ±º‰£¨‘ˆº”ªª≥À°£
-
 //Œﬁø…±‹√‚µÿ±ª∑÷ø™¡À£¨‘⁄µ•“ª∆µ„÷––Œ≥…’æœﬂ¡¥£¨¥ÊµΩtemplingstation,øº¬«»˝Àƒ∫≈œﬂ ‰≥ˆŒ Ã‚
 void merge_line() {
   tempLineStation.clear();
@@ -139,7 +138,6 @@ void merge_line() {
         i--;
       } else if (i + 2 < tempLineStation.size() &&
                  (tempLineStation[i + 2] == 3 || tempLineStation[i + 2] == 4)) {
-        // tempLineStation[i]=tempLineStation[i+2];
         tempLineStation.erase(tempLineStation.begin() + i,
                               tempLineStation.begin() + i + 2);
         i--;
@@ -149,7 +147,9 @@ void merge_line() {
   }
 }
 
-void branch_line_output(const int &cnt) { //¥¶¿Ìseg£¨≤ªª·≥ˆœ÷lineœ‡Õ¨µƒŒ Ã‚£¨∏∫‘¥Ú”°£¨º∆À„seg¥Û–°£¨∏∫‘“ª÷÷ø…ƒ‹µƒ∂Œ¬∑æ∂
+void branch_line_output(
+    const int &
+        cnt) { //¥¶¿Ìseg£¨≤ªª·≥ˆœ÷lineœ‡Õ¨µƒŒ Ã‚£¨∏∫‘¥Ú”°£¨º∆À„seg¥Û–°£¨∏∫‘“ª÷÷ø…ƒ‹µƒ∂Œ¬∑æ∂
   int i = temp.size();
   temppTime = 0;
   for (int j = i - 2; j >= 0; j--) //¥”source-1ø™ º£¨
@@ -158,8 +158,20 @@ void branch_line_output(const int &cnt) { //¥¶¿Ìseg£¨≤ªª·≥ˆœ÷lineœ‡Õ¨µƒŒ Ã‚£¨∏∫‘
   }
   merge_line();
   if (tempLineStation.size() == 2) {
-    auto last = entireLineStation.back();
-    auto ins = last[last.size() - 2];
+    auto doubleStation = tempLineStation.back();
+    vector<int> last;
+    int ins = 0;
+    if (!entireLineStation.empty()) {
+      last = entireLineStation.back();
+      ins = last[last.size() - 2];
+    } else {
+      for (auto j : lines[doubleStation]) {
+        if (j != 0) {
+          ins = j;
+        }
+      }
+    }
+
     tempLineStation.insert(tempLineStation.begin() + 1, ins);
   }
   for (int j = 0; j + 1 < tempLineStation.size(); j += 2) {
@@ -185,7 +197,7 @@ void branch_line_output(const int &cnt) { //¥¶¿Ìseg£¨≤ªª·≥ˆœ÷lineœ‡Õ¨µƒŒ Ã‚£¨∏∫‘
   }
 }
 
-void path_output_dfs(int s, int t,  
+void path_output_dfs(int s, int t,
                      const int &cnt) { //∏∫‘À˘”–ø…ƒ‹µƒ∂Œ¬∑æ∂
   if (s == t) {
     temp.push_back(t);
@@ -206,15 +218,21 @@ void path_output_dfs(int s, int t,
 void entire_line_station_print_change() { //
   int changesum = 0;
   int preline = 0;
-  for (auto i : entireLineStation) {
-    if (preline == i[1]) {
-      changesum--;
+  for (auto i : entireLineStation) { // i[1]√ø∂Œ¬∑µƒµ⁄“ªÃıœﬂ°£
+    if (i[0] != i.back()) {
+      if (preline == i[1]) {
+        changesum--;
+      }
+      preline = i[i.size() - 2]; //µ±«∞∂Œ≤ª‘Ÿ π”√preline
+
+    } else {
+      changesum--; // preline≤ª±‰°£
     }
+
     for (int j = 0; j + 1 < i.size(); j += 2) {
       cout << stationNames[i[j]] << "-";
       cout << "line " << i[j + 1] << "-";
     }
-    preline = i[i.size() - 2];
     changesum += i.size() / 2;
   }
   cout << stationNames[entireLineStation.back().back()];
@@ -230,6 +248,7 @@ bool bellman_ford(int s) {
   }
   d[s] = 0;
   for (int i = 1; i <= size - 1; i++) {
+    bool relaxed = false;
     for (int u = 1; u <= size; u++) {
       for (int v = 1; v <= size; v++) {
         if (w[u][v] != 0) {
@@ -237,22 +256,22 @@ bool bellman_ford(int s) {
             d[v] = d[u] + w[u][v];
             pi[v].clear();
             pi[v].push_back(u);
+            relaxed = true;
             // pi[v]=u;
-          } 
-          else if (d[v] == d[u] + w[u][v]) {
-            if (find(pi[v].begin(),pi[v].end(),u)==pi[v].end())
-            {
-                          pi[v].push_back(u);
-
+          } else if (d[v] == d[u] + w[u][v]) {
+            if (find(pi[v].begin(), pi[v].end(), u) == pi[v].end()) {
+              pi[v].push_back(u);
+              relaxed = true;
             }
-            
           }
         }
       }
     }
+    if (!relaxed) {
+      break;
+    }
   }
-
-  for (int u = 1; u <= size; u++) {    
+  for (int u = 1; u <= size; u++) {
     for (int v = 1; v <= size; v++) {
       if (w[u][v] != 0) {
         if (d[v] > d[u] + w[u][v]) {
@@ -338,8 +357,9 @@ void tb() {
   ifstream fp("performance-benchmark.txt");
   string line;
   int lastline = 0;
-  int cnt = 6;
-  while (getline(fp, line) && cnt--) {
+  int cnt = 0;
+  while (getline(fp, line)) {
+    temp.clear();
     int timesum = 0, changesum = 0;
     string curstation;
     istringstream readstr(line);
@@ -350,14 +370,14 @@ void tb() {
       segMinChange = MAX;
       bellman_ford(stationMap.at(prestation));
       path_output_dfs(stationMap.at(prestation), stationMap.at(curstation),
-                       cnt1++);
+                      cnt1++);
       timesum += temppTime;
       prestation = curstation;
     }
     entire_line_station_print_change();
-
     cout << "ªª≥À ±º‰" << timesum << endl;
     entireLineStation.clear();
+    cnt++;
   }
   //∑¥∑ΩœÚªª≥À£¨Ωˆµ±◊Ó∫Û“ª’æŒ™ ‰»Î ±≤˙…˙£¨ƒ«√¥÷ªøº¬« ‰≥ˆµƒª∞£¨◊˜Œ™ ◊ƒ©’æøœ∂®ª· ‰≥ˆ£¨ªª≥À£¨Õ®≥£«Èøˆœ¬æÕ «‘⁄ ‰≥ˆµƒ“ª∏ˆ’æ◊Û”“œﬂ¬∑≤ªÕ¨ ±ªª≥À“ª¥Œ°£
 }
@@ -365,15 +385,6 @@ void tb() {
 int main() {
   int timesum = 0, changesum = 0, lastline = 0;
   init_graph();
-
   tb();
-  // string a,b;
-  // cin>>a>>b;
-  // dijkstra(stationMap.at(a));
-  
-  // path_output_dfs(stationMap.at(a),stationMap.at(b),0);
-  // // tb();
-  // cout<<stationNames[1];
-
   return 0;
 }
