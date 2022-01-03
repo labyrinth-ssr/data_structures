@@ -1,0 +1,24 @@
+int MAX=32767;设定一个大数表示正无穷。
+
+unordered_set 存放不重复的站点名（用int表示）。使用stl高效增删。
+unordered_map key为站名string，value为int。未每个站分配index，用于数组存储数据
+二维数组w：表示站与站之间的带权边，即运行时间。
+二维数组lines用于给定相邻两站查找连接两站的地铁线。
+vector<int> temp，用于dfs装载一种可能的站点组合。（对给定的头尾站点）
+vector<int> pi[500]:  静态分配的500个空位用于区分每个站，动态的vector记录实现最短路的前一站（因为可能有多种情况）。
+system_clock::time_point time_parser(string in) 将字符串格式化为system_clock,特别是对次日时间的处理
+int min_gap(string a, string b):计算两个时间字符串的分钟时间间隔
+int extract_min(stationIndexSet &q):在站点集合中选出d[v]最小的站点并返回，同时在集合中删除该点
+void dijkstra(int s):将所有d[v]初始化为正无穷，pi[v]为NIL。维护集合S和S的补集q，S初始化为空，然后遍历q，更新d[v]，挑选d[v]最小的加入s并更新pi[v]。注意pi[v]是vector，遍历到与当前最小d相同时，将v加入vector，若遍历到小于当前最小的，则将vector清空后加入v。
+void merge_line() 用于将temp中在同一线路上的站点合并。
+void branch_line_ouptput()用于输出给定起点终点的一段的可能情况，同时给出所需时间。
+void path_output_dfs()用于遍历所有可能的最短路。（对给定的头尾站点）
+void entire_line_station_print_change()：挑选出每一段头尾站点最短路中换乘最少的一组拼接后输出总换乘路线与换乘数。
+bool bellman_ford(int s)：对所有边进行V-1次遍历，松弛。最后遍历一遍检查是否有负环（此pj无用）
+优化：当此轮遍历没有边被松弛则停止。
+void init_graph()：读取csv（所有线路信息）单独判断特殊站点的分支以及4号线。
+
+对于3、4号线，重合段输入相邻站点后lines[u][v]值为-1,根据重合段前（或后）的首条线是3/4号线，则与它保持相同，否则默认为3号线（在merge_line中处理）
+首尾站相同的情况：dfs直接进入branch_line_output() w[u][u]为0，自然不增加时间，此时temp大小为0，进入merge_line后仅为tempLineStation添加相同的首尾站。merge_line结束后，判断tempLineStation.size()(仅当首尾站相同时为2，否则至少为3)，此时如果有前一条线路，就使line保持一致，填入tempLineStation中间（保持总换乘数最小），否则就任选一条经过这站的线路。
+
+friendly ui

@@ -79,7 +79,7 @@ int extract_min(stationIndexSet &q) { // q: the remaining stations
   return minv;
 }
 // 假设是数组，dv，v是数字。这样就不需要map，
-void dijkstra(int s) { // s:source
+void dijkstra(int s) { // s:source 修改：全局变量d,pi,
   for (auto v : V)     //
   {
     d[v] = MAX;
@@ -98,9 +98,9 @@ void dijkstra(int s) { // s:source
           pi[v].clear();
           pi[v].push_back(u);
         } else if (d[v] == d[u] + w[u][v]) {
-          if (find(pi[v].begin(), pi[v].end(), u) == pi[v].end()) {
-            pi[v].push_back(u);
-          }
+          // if (find(pi[v].begin(), pi[v].end(), u) == pi[v].end()) {
+          pi[v].push_back(u);
+          // }
         }
       }
     }
@@ -357,8 +357,8 @@ void tb() {
   ifstream fp("performance-benchmark.txt");
   string line;
   int lastline = 0;
-  int cnt = 0;
-  while (getline(fp, line)) {
+  int cnt = 10;
+  while (getline(fp, line)&&cnt--) {
     temp.clear();
     int timesum = 0, changesum = 0;
     string curstation;
@@ -376,15 +376,68 @@ void tb() {
     }
     entire_line_station_print_change();
     cout << "换乘时间" << timesum << endl;
+    for (auto a : entireLineStation) {
+      a.clear();
+    }
     entireLineStation.clear();
-    cnt++;
+    // cnt++;
   }
   //反方向换乘，仅当最后一站为输入时产生，那么只考虑输出的话，作为首末站肯定会输出，换乘，通常情况下就是在输出的一个站左右线路不同时换乘一次。
 }
 
+void ui() {
+  while (1) {
+    int choice1;
+    cout << "input 1: dijkstra; input 2: bellman-ford" << endl;
+    cin >> choice1;
+
+    int choice2;
+    cout << "file benchmark input: 1; cmd input: 2" << endl;
+    cin >> choice2;
+
+    if (choice2 == 1) {
+      tb();
+    } else {
+      while (1) {
+        int nstation;
+        cout << "input station numbers:" << endl;
+        cin >> nstation;
+        string curstation;
+        cin >> curstation;
+        string prestation = curstation;
+        int cnt1 = 0;
+        int timesum = 0, changesum = 0;
+        nstation--;
+        while (nstation--) {
+          cin >> curstation;
+          segMinChange = MAX;
+          if (choice1 == 1) {
+            dijkstra(stationMap.at(prestation));
+          } else {
+            bellman_ford(stationMap.at(prestation));
+          }
+
+          path_output_dfs(stationMap.at(prestation), stationMap.at(curstation),
+                          cnt1++);
+          timesum += temppTime;
+          prestation = curstation;
+        }
+        entire_line_station_print_change();
+        cout << "换乘时间" << timesum << endl;
+
+        int choice3;
+        cout << "continue cmd input test? yes: 1; no: 0" << endl;
+        cin >> choice3;
+        if (!choice3) {
+          break;
+        }
+      }
+    }
+  }
+}
+
 int main() {
-  int timesum = 0, changesum = 0, lastline = 0;
   init_graph();
-  tb();
+  ui();
   return 0;
 }
